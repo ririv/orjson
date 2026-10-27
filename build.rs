@@ -57,8 +57,14 @@ fn main() {
     println!("cargo:rustc-check-cfg=cfg(PyPy)");
     println!("cargo:rustc-check-cfg=cfg(trusted_len)");
 
-    #[cfg(all(target_arch = "x86_64", not(target_os = "macos")))]
-    if is_64_bit_python {
+    // build.rs is compiled for the host, so `#[cfg(target_arch)]` here reflects the
+    // host rather than the compilation target. Check the target explicitly so that
+    // cross-compiling from x86_64 (e.g. to aarch64-linux-android) does not enable avx512.
+    let target_arch =
+        std::env::var("CARGO_CFG_TARGET_ARCH").expect("CARGO_CFG_TARGET_ARCH is not set.");
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").expect("CARGO_CFG_TARGET_OS is not set.");
+
+    if target_arch == "x86_64" && target_os != "macos" && is_64_bit_python {
         println!("cargo:rustc-cfg=feature=\"avx512\"");
     }
 
